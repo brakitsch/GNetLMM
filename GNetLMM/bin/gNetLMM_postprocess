@@ -1,0 +1,21 @@
+#! /usr/bin/env python
+# Copyright(c) 2015, The gNetLMM developers (Barbara Rakitsch)
+# All rights reserved.
+
+from optparse import OptionParser
+import pdb
+import numpy as np
+
+from GNetLMM.pycore.modules.postprocessCore import postprocess
+
+if __name__ == "__main__":
+    parser = OptionParser()
+    parser.add_option("--assoc0file",dest='assoc0file', type=str, default=None)
+    parser.add_option("--assocfile", dest='assocfile', type=str, default=None)
+    parser.add_option("--plotfile", dest='plotfile', type=str, default=None)
+    parser.add_option("--pfile", dest='pfile', type=str, default=None)
+    parser.add_option("--bfile", dest='bfile', type=str, default=None)
+    parser.add_option("--window", dest='window', type=int, default=0)
+    (options, args) = parser.parse_args()
+
+    postprocess(options)
