@@ -9,7 +9,7 @@ import limix.modules.varianceDecomposition as varianceDecomposition
 import limix.modules.qtl as qtl
 import limix
 
-
+import warnings
 
 
 
@@ -32,7 +32,11 @@ def pcor(X,Y,Z):
     corr_cond = SP.corrcoef(Xres[:,0],Yres[:,0])[0,1]
     dz = Z.shape[1]  # dimension of conditioning variable
     df = max(nSamples - dz - 2,0)  # degrees of freedom
-    tstat = corr_cond / SP.sqrt(1.0 - corr_cond ** 2)  # calculate t statistic
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        tstat = corr_cond / SP.sqrt(1.0 - corr_cond ** 2)  # calculate t statistic
+        
     tstat = math.sqrt(df) * tstat
     pv_cond = 2 * t.cdf(-abs(tstat), df, loc=0, scale=1)  # calculate p value
     return corr_cond,pv_cond
@@ -100,7 +104,11 @@ def corrParallelSym(Y,df=None):
     corr = SP.corrcoef(Y)
     if df is None:
         df = max(nSamples  - 2,0)  # degrees of freedom
-    tstat = corr / SP.sqrt(1.0 - corr ** 2)  # calculate t statistic
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        tstat = corr / SP.sqrt(1.0 - corr ** 2)  # calculate t statistic
+
     tstat = math.sqrt(df) * tstat
     pv = 2 * t.cdf(-abs(tstat), df, loc=0, scale=1)  # calculate p value
     return corr,pv
@@ -126,7 +134,13 @@ def corrParallel(X,Y=None,df=None):
     corr =  SP.dot(Xstd.T,Ystd)/nSamples
     if df is None:
         df = max(nSamples  - 2,0)  # degrees of freedom
-    tstat = corr / SP.sqrt(1.0 - corr ** 2)  # calculate t statistic
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        tstat = corr / SP.sqrt(1.0 - corr ** 2)  # calculate t statistic
+
+        
+  
     tstat = math.sqrt(df) * tstat
     pv = 2 * t.cdf(-abs(tstat), df, loc=0, scale=1)  # calculate p value
     return corr,pv
