@@ -150,23 +150,28 @@ class GNetLMM:
         F = self.genoreader.get_nrows()
         T = self.phenoreader.get_nrows()
         
-        pv0 = self.assoc0_reader.getMatrix()
+        #pv0 = self.assoc0_reader.getMatrix()
 
         
         snp_ids  = self.genoreader.getSnpIds()
         gene_ids = self.phenoreader.getGeneIds()
         
         RV = {'pv':[], 'snp_ids':[], 'gene_ids':[], 'isnp':[], 'igene':[]}
-        
-        for f in range(F): 
-            pv_min = np.min(pv0[f])
-            if pv_min > cis_thresh: continue
-            idx_anchor = pv0[f]==pv_min
 
-            
+        
+        t_min  = 0
+        t_save = 0
+
+        t00 = time.time()
+        
+        for f, pv0_f in self.assoc0_reader.getRowIterator():
+   
+            pv_min = np.min(pv0_f)
+            if pv_min > cis_thresh: continue
+            idx_anchor = pv0_f==pv_min
             if not(idx_anchor.any()): continue
-            idx_anchor = np.logical_and(idx_anchor, self.find_cis_genes(f))
-            
+            idx_anchor[idx_anchor] = self.find_cis_genes(f, idx_anchor)
+     
             if idx_anchor.any():
                 igenes = np.nonzero(idx_anchor)[0]
                 for t in igenes:
@@ -175,7 +180,7 @@ class GNetLMM:
                     RV['gene_ids'].append(gene_ids[t])
                     RV['isnp'].append(f)
                     RV['igene'].append(t)
-
+          
         for key in RV.keys():
             RV[key] = np.array(RV[key])
 
@@ -222,23 +227,26 @@ class GNetLMM:
         """
         updating association scan
         """
+
        
         self.assoc_updates = assoc_results.AssocResultsList()
-        for focal_gene, snp_anchor, orth_gene in self.vstructures.iterator():
 
+        
+        for focal_gene, snp_anchor, orth_gene in self.vstructures.iterator():
             if focal_gene<startTraitIdx or startTraitIdx+nTraits<=focal_gene:
                 continue
       
             y_focal  = self.phenoreader.getRows(focal_gene).T
             y_orth   = self.phenoreader.getRows(orth_gene).T
+            if y_focal.ndim==1: y_focal = y_focal[:,np.newaxis]
+            if y_orth.ndim==1: y_orth = y_orth[:,np.newaxis]
+                
             startSnpIdx = np.min(snp_anchor)
             nSnps  = np.max(snp_anchor) - startSnpIdx + 1
             G_anchor = self.genoreader.loadSnpBlock(startSnpIdx, nSnps).T
             G_anchor = G_anchor[:,snp_anchor-startSnpIdx]
-            
             pv, beta = qtl_lr.test_lmm_lr_speed(G_anchor,y_focal, Z=y_orth,Kbg=self.K,Covs=self.Covs, S=self.S, U=self.U)
-      
-        
+            #pv, beta = qtl_lr.test_lmm_lr(G_anchor,y_focal, Z=y_orth,Kbg=self.K,Covs=self.Covs)
             self.assoc_updates.add(pv,beta, snp_anchor, focal_gene)
 
 
@@ -257,7 +265,7 @@ class GNetLMM:
         input:
         t   :   index of the gene t
         """
-      
+
         # incoming edges are associated with the gene of interest...        
         pv_genes = self.genecorr_reader.getRows([t])[0]
         idx_assoc = qvalue.estimate(pv_genes)<self.thresh_corr
@@ -362,33 +370,36 @@ class GNetLMM:
 
 
     def find_vstructures_given_focal_gene(self,t):
+   
         # find incoming edges
         vstruct, idx_vstruct = self.find_incoming_edges(t)
         if vstruct is None:
             yield None, None
             return
-
+        t1 = time.time()
+     
         # find incoming edges that have at least one anchor
         vstruct,idx_orth,idx_anchor = self.find_anchored_parents(vstruct, idx_vstruct)
         if vstruct is None:
             yield None, None
             return
-
+ 
         # map anchor genes to anchor snps
         anchor2snp, idx_snp = self.cis_anchors.gene2snp(idx_anchor)
         vstruct = np.dot(vstruct,anchor2snp)
-    
+ 
         # remove edge if snp is correlated with orthogonal gene
         vstruct = self.remove_vstructures_with_related_parents(vstruct,idx_orth,idx_snp)
-    
+ 
         # remove anchor snps if close to gene
         vstruct = self.remove_snps_related_to_focal_gene(t,idx_snp, vstruct)
-     
+ 
         # bundle SNPs that have the same in-coming genes
         np.random.seed(0)
         w_rnd = np.random.randn(vstruct.shape[0])
         _,idx,inv = np.unique(w_rnd.dot(vstruct), return_index=True,return_inverse=True)
-      
+
+
         for i in np.unique(inv):
             isnps = np.array(idx_snp[inv==i],)
             if vstruct[:,idx[i]].sum()==0: continue

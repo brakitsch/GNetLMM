@@ -32,6 +32,8 @@ class MatrixReader:
         return self.M[idx,:]
 
 
+
+
 class FileReader:
     """
     container for holding phenotype files of the following format
@@ -52,6 +54,25 @@ class FileReader:
         self.basefile = basefile
         if load_rowinfo: self.row_info = self.getInfo('rows')
         if load_colinfo: self.col_info = self.getInfo('cols')
+
+        if not(os.path.exists(self.basefile + '.cache.npy')):
+            self.createCacheFile()
+
+        self.line_offset = np.load(self.basefile + '.cache.npy')
+    
+        
+    def createCacheFile(self):
+        line_offset = []
+        offset = 0
+        f = open(self.basefile + '.matrix','r')
+        for line in f:
+            line_offset.append(offset)
+            offset += len(line)
+
+        line_offset = np.array(line_offset)
+        np.save(self.basefile + '.cache.npy', line_offset)
+    
+
         
     def getMatrix(self):
         """
@@ -59,6 +80,8 @@ class FileReader:
         """
         M = np.loadtxt(self.basefile + '.matrix')
         return M
+
+
 
     def getRows(self,idx):
         """
@@ -68,13 +91,29 @@ class FileReader:
         idx   :   row indices
         """
         RV = []
+        imax = np.max(idx)
+
+    
+        f = open(self.basefile + '.matrix','r')
         for i in idx:
-            line = linecache.getline(self.basefile + '.matrix', i+1)
+            f.seek(0)
+            f.seek(self.line_offset[i])
+            line = f.readline()
             line = line.split(' ')
             RV.append(line)
-
+      
+                
         RV = np.array(RV,dtype=float)
+     
         return RV
+
+    def getRowIterator(self):
+        f = open(self.basefile + '.matrix', 'r')
+
+        j = 0
+        for i,line in enumerate(f):
+            line = np.array(line.split(' '), dtype=float)
+            yield i, line
         
     def getInfo(self, which):
         """

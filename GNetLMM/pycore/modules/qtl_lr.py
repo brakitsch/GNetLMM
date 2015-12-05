@@ -63,6 +63,8 @@ def test_lmm_lr_speed(G,y,Z,Kbg,Covs=None,S=None,U=None):
 
     Cg = covariance.freeform(1)
     Cn = covariance.freeform(1)
+
+    Z/=np.sqrt(Z.shape[1])
     gp = gp3kronSum(m,Cg,Cn,XX=Kbg,Xr=Z,S_XX=S,U_XX=U)
 
     
@@ -74,6 +76,7 @@ def test_lmm_lr_speed(G,y,Z,Kbg,Covs=None,S=None,U=None):
         params_rnd['mean'] = 1e-6*np.random.randn(nCovs)
     
     conv,info = OPT.opt_hyper(gp,params_rnd)
+        
     LML0 = gp.LML()
     params0 = gp.getParams()
 
@@ -99,4 +102,5 @@ def test_lmm_lr_speed(G,y,Z,Kbg,Covs=None,S=None,U=None):
 
     LRT = 2*(LML0-LML)
     pv = stats.chi2.sf(LRT,1)
+
     return pv, beta
