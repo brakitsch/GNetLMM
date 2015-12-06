@@ -90,21 +90,20 @@ class FileReader:
         input:
         idx   :   row indices
         """
-        RV = []
-        imax = np.max(idx)
-
-    
+   
         f = open(self.basefile + '.matrix','r')
+        line = f.readline()
+        n_cols = len(line.split(' '))
+        RV = np.zeros((len(idx),n_cols))
+        
+        j=0
         for i in idx:
-            f.seek(0)
             f.seek(self.line_offset[i])
             line = f.readline()
             line = line.split(' ')
-            RV.append(line)
-      
-                
-        RV = np.array(RV,dtype=float)
-     
+            RV[j] = np.array(line, dtype=np.float)
+            j += 1
+
         return RV
 
     def getRowIterator(self):

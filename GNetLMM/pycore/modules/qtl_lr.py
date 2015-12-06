@@ -56,6 +56,9 @@ def test_lmm_lr_speed(G,y,Z,Kbg,Covs=None,S=None,U=None):
     """
     m = mean(y)
     one = np.ones((1,1))
+
+    if Z.shape[1] > G.shape[0]:
+        return test_lmm_lr(G, y, Z, Kbg, Covs=Covs)
     
     if Covs is not None:
         m.addFixedEffect(Covs)
