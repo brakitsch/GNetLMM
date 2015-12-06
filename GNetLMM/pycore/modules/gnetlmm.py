@@ -139,7 +139,7 @@ class GNetLMM:
         return corr,pv
 
 
-    def gene_has_cis_anchor(self, cis_thresh):
+    def gene_has_cis_anchor(self, cis_thresh, do_trans=False):
         """
         computes if a gene has a cis anchor
 
@@ -149,10 +149,7 @@ class GNetLMM:
         """
         F = self.genoreader.get_nrows()
         T = self.phenoreader.get_nrows()
-        
-        #pv0 = self.assoc0_reader.getMatrix()
-
-        
+                
         snp_ids  = self.genoreader.getSnpIds()
         gene_ids = self.phenoreader.getGeneIds()
         
@@ -170,7 +167,9 @@ class GNetLMM:
             if pv_min > cis_thresh: continue
             idx_anchor = pv0_f==pv_min
             if not(idx_anchor.any()): continue
-            idx_anchor[idx_anchor] = self.find_cis_genes(f, idx_anchor)
+
+            if not(do_trans):
+                idx_anchor[idx_anchor] = self.find_cis_genes(f, idx_anchor)
      
             if idx_anchor.any():
                 igenes = np.nonzero(idx_anchor)[0]
